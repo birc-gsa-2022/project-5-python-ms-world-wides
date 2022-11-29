@@ -57,11 +57,12 @@ def bwt_C_O(x: str) -> tuple():
     """    
     
     last_idx = len(x)-1 # last_idx
+    rev_x = ''.join(reversed(x))+'$'
+    Rsa = suffixArray(rev_x)
+    Rbwt = ''.join([rev_x[(i + last_idx)%len(rev_x)] for i in Rsa])
 
-    Rsa = suffixArray(reversed(x)+'$')
-    Rbwt = ''.join([reversed(x)[(i + last_idx)%len(x)] for i in Rsa])
-
-    sa = suffixArray(x+'$') 
+    x += '$'
+    sa = suffixArray(x) 
     bwt = ''.join([x[(i + last_idx)%len(x)] for i in sa]) # Calculates bwt(x)
 
     count = ''.join([x[i] for i in sa]) # Sort x
@@ -77,45 +78,47 @@ def fasta_func(fastafile: str) -> dict:
     Returns:
         dict: return dictionary with fasta sequence coupled with its sequence name
     """    
+    with open(fastafile, 'r') as f:
+        sequence = []
+        name = ''
+        fasta_dict = {}
+        for line in f:
+            if type(line) == list:
+                line = line[0]
+            if line.startswith('>'):
+                if name != '':
+                    fasta_dict[name] = ''.join(sequence)
+                    sequence = []
+                name = line[1:].strip()
+            else:
+                sequence.append(line.strip())
 
-    sequence = []
-    name = ''
-    fasta_dict = {}
-    for line in fastafile:
-        if type(line) == list:
-            line = line[0]
-        if line.startswith('>'):
-            if name != '':
-                fasta_dict[name] = ''.join(sequence)
-                sequence = []
-            name = line[1:].strip()
-        else:
-            sequence.append(line.strip())
-
-    if name != '':
-        fasta_dict[name] = ''.join(sequence)
+        if name != '':
+            fasta_dict[name] = ''.join(sequence)
 
     return fasta_dict
 
 def fastq_func(fastqfile: str) -> dict: 
-    read = []
-    name = ''
-    fastq_dict = {}
-    for line in fastqfile:
-        if line.startswith('@'):
-            if name != '':
-                fastq_dict[name] = ''.join(read)
-                read = []
-            name = line[1:].strip()
-        else:
-            read.append(line.strip())
+    
+    with open(fastqfile, 'r') as f:
+        read = []
+        name = ''
+        fastq_dict = {}
+        for line in f:
+            if line.startswith('@'):
+                if name != '':
+                    fastq_dict[name] = ''.join(read)
+                    read = []
+                name = line[1:].strip()
+            else:
+                read.append(line.strip())
 
-    if name != '':
-        fastq_dict[name] = ''.join(read)
+        if name != '':
+            fastq_dict[name] = ''.join(read)
 
     return fastq_dict
     
-def process_file(fasta_dict: dict, filename: str):
+def process_file(fasta_dict: dict, filename: str) -> str:
     """Create a file containing the name of each string 
     with their suffix array, their bucket dict and their O table
     """    
@@ -126,19 +129,21 @@ def process_file(fasta_dict: dict, filename: str):
         final = ''
         for k, v in fasta_dict.items():
             final += '>' + k + '\n'
-            Rsa, sa, C, , RO, O = bwt_C_O(v)
+            Rsa, sa, C, RO, O = bwt_C_O(v)
             final += str(Rsa) + '\n'
             final += str(sa) + '\n'
             final += str(C) + '\n'
             final += str(RO) + '\n'
             final += str(O) + '\n'
         f.writelines(final)
+    
+    return file
 
 def approximate_matching(prepro_file: str, fastq_dict: dict, edit_limit: int):
     # give room for muliple fasta sequences
-    fastanames, Rsa_list, sa_list, C_list, O_list, RO_list = [], [], [], [], []
+    fastanames, Rsa_list, sa_list, C_list, O_list, RO_list = [], [], [], [], [], []
 
-    with open(prepro_file, 'r') as f:    
+    with open(prepro_file, 'r') as f: 
         lines = f.readlines()
         linecounter = 0
         for line in lines:
@@ -147,7 +152,8 @@ def approximate_matching(prepro_file: str, fastq_dict: dict, edit_limit: int):
                 linecounter = 0
                 name = line[1:].strip()
                 fastanames.append(name)
-            l = ast.literal_eval(line[1:].strip())
+                continue
+            l = ast.literal_eval(line.strip())
             if linecounter == 1:
                 Rsa_list.append(l)
             elif linecounter == 2:
@@ -159,79 +165,114 @@ def approximate_matching(prepro_file: str, fastq_dict: dict, edit_limit: int):
             elif linecounter == 5:
                 O_list.append(l)
     
-    res = []
     for readname, read in fastq_dict.items():
         for i, sa in enumerate(sa_list):
             D = D_table(Rsa_list[i], C_list[i], RO_list[i], read, edit_limit)
             if D != []:
-                simplesam = approx_fm_search(fastanames[i], sa_list[i], C_list[i], O_list[i], read, readname, D)
+                simplesam = approx_fm_search(fastanames[i], sa_list[i], C_list[i], O_list[i], read, readname, D, edit_limit)
                 yield simplesam
-
 
 def D_table(Rsa: list, C: dict, RO: dict, fastq: str, edit_limit) -> list:
         
     L, R = 0, len(Rsa)
     D = []
     edits = 0
-    
     for char in fastq: # O(m)
-        while edits <= edit_limit:
+        L = C[char] + RO[char][L] # O(1)
+        R = C[char] + RO[char][R]
+        if edits <= edit_limit:
             if L == R or char not in C:
                 edits += 1
+                D.append(edits)
                 L, R = 0, len(Rsa)
             else:
-                L = C[char] + RO[char][L] # O(1)
-                R = C[char] + RO[char][R] # O(1)
-            D.append(edits)
+                D.append(edits)
         else:
             D = []
     return D
 
-def approx_fm_search(genomename: str, sa: list, C: dict, O: dict, fastq: str, readname: str, D: list, edit_limit) -> str:
+def approx_fm_search(genomename: str, sa: list, C: dict, O: dict, fastq: str, readname: str, D: list, edit_limit: int) -> str:
 
     res = []
     sigma = list(C.keys())
     
     L, R = 0, len(sa)
-    p = reversed(fastq)
+    p = ''.join(reversed(fastq))
     j = 0
     res = {} # {edits: (L, R, cigar)}
     queue = [(0, L, R, "", j)] # (edits, L, R, cigar, j)
-    while queue.empty() == False:
+    while queue:
         edits, L, R, cigar, j = queue.pop()
-        if j < len(p) and edits <= edit_limit: # O(m)
 
-            # USE D
-            
-            if L == R or p[j] not in C: # Do we need this? no, can do deletion instead, just not for the first character
-                L = R # for char not in C
-                break
-            # ADD: Mismatch and match
-            
-
-            # Insertion
-            queue.append((edits, L, R, cigar, j+1))
-            # Deletion
-            # ADD: No deletion at the beginning of the pattern!!!
-            queue.append((edits, C[p[j]] + O[p[j]][L], C[[j]] + O[[j]][R], cigar, j+1))
-        elif j == len(p)-1:
-            res[edits] = (L, R, cigar)
-        else:
+        if j == len(p) and edits <= edit_limit: # add result
+            if edits in res:
+                res[edits].append((L, R, cigar))
+            else:
+                res[edits] = [(L, R, cigar)]
+            j = 0
             continue
+        
+        d = D[j] # Worth doing D or I or going on with a mismatch?
+
+        if j < len(p) and d <= edit_limit: # O(m)
+            # Update 29-11-22: add letters to cigar from the front since we move through p from the back
+            
+            # Mismatch
+            if (L == R or p[j] not in C) and edits < edit_limit: # Do we need this? no, can do deletion instead, just not for the first character
+                print('mismatch')
+                queue.append((edits+1, 0, len(sa), 'M'+cigar, j+1))
+            
+            elif L != R: # Match
+                print('match')
+                if cigar == 'M' or cigar == 'I':
+                    cigar += 'follow'
+                elif cigar == 'Mfollow':
+                    print('why dont I print match?')
+                queue.append((edits, C[p[j]] + O[p[j]][L], C[p[j]] + O[p[j]][R], 'M'+cigar, j+1))
+            
+            # Insertion
+            if edits < edit_limit:
+                print('insertion')
+                queue.append((edits+1, L, R, 'I'+cigar, j+1))
+
+            # Deletion
+            if j != 0 and edits < edit_limit:
+                print('deletion')
+                queue.append((edits+1, C[p[j]] + O[p[j]][L], C[p[j]] + O[p[j]][R], 'D'+cigar, j))
             
     
+    final = []
+    print(res)
     for edits, match in res.items():
+        
         for L,R,cigar in match:
-            for a in range(L,R):
-                match = sa[a]+1
-                res.append('\t'.join([readname, genomename, str(match), f'{cigar}M', fastq]))
+            print(sa)
+            match = sa[L]+1
+            final.append('\t'.join([readname, genomename, str(match), f'{cigar}', fastq]))
     
-    return '\n'.join(res)
+    return '\n'.join(final)
 
 
 def main():
 
-    argparser = argparse.ArgumentParser(
+    genome = 'src/fasta.fa'
+    fa = fasta_func(genome)
+    print(fa)
+    read = 'src/fastq.fq'
+    fq = fastq_func(read)
+    
+    editlim = 1
+
+
+    filename = process_file(fa, genome)
+
+    sams = approximate_matching(filename, fq, editlim)
+    for s in sams:
+        print(s)
+
+    
+
+    """ argparser = argparse.ArgumentParser(
         description="FM-index exact pattern matching",
         usage="\n\tfm -p genome\n\tfm genome reads"
     )
@@ -265,7 +306,7 @@ def main():
         
         fastq_dict = fastq_func(args.reads)
         print(fm_search(prepro_file, fastq_dict))
-        
+         """
         
 
 
