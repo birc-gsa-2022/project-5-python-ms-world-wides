@@ -383,7 +383,7 @@ def main():
         prepro_file = args.genome.name.split('.')[0]+'_prepro.txt'
         
         fastq_dict = fastq_func(args.reads)
-        print(approximate_matching(prepro_file, fasta_dict, args.d))
+        print(approximate_matching(prepro_file, fastq_dict, args.d))
 
 
 if __name__ == '__main__':
