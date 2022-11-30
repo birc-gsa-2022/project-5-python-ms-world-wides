@@ -1,0 +1,18 @@
+tools:
+  GSA:
+    preprocess: "gsa preprocess {genome} approx-bwt"
+    map: "gsa search {genome} {reads} -o {outfile} approx -e {e} bwt"
+  readmap:
+    preprocess: "{root}/readmap -p {genome}"
+    map: "{root}/readmap -d {e} {genome} {reads} > {outfile}"
+
+reference-tool: GSA
+
+genomes:
+  length: [1000, 5000, 10000]
+  chromosomes: 10
+
+reads:
+  number: 10
+  length: 10
+  edits: [0, 1, 2]

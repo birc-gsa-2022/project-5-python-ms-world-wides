@@ -1,6 +1,7 @@
 import argparse
 import sys
 import ast
+import re
 
 def suffixArray(x: str) -> list:
     """Given x return suffix array SA(x). 
@@ -55,8 +56,8 @@ def bwt_C_O(x: str) -> tuple():
     Returns:
         SA, C and O
     """    
-    
-    last_idx = len(x)-1 # last_idx
+
+    last_idx = len(x) # last_idx
     rev_x = ''.join(reversed(x))+'$'
     Rsa = suffixArray(rev_x)
     Rbwt = ''.join([rev_x[(i + last_idx)%len(rev_x)] for i in Rsa])
@@ -78,43 +79,41 @@ def fasta_func(fastafile: str) -> dict:
     Returns:
         dict: return dictionary with fasta sequence coupled with its sequence name
     """    
-    with open(fastafile, 'r') as f:
-        sequence = []
-        name = ''
-        fasta_dict = {}
-        for line in f:
-            if type(line) == list:
-                line = line[0]
-            if line.startswith('>'):
-                if name != '':
-                    fasta_dict[name] = ''.join(sequence)
-                    sequence = []
-                name = line[1:].strip()
-            else:
-                sequence.append(line.strip())
+    sequence = []
+    name = ''
+    fasta_dict = {}
+    for line in fastafile:
+        if type(line) == list:
+            line = line[0]
+        if line.startswith('>'):
+            if name != '':
+                fasta_dict[name] = ''.join(sequence)
+                sequence = []
+            name = line[1:].strip()
+        else:
+            sequence.append(line.strip())
 
-        if name != '':
-            fasta_dict[name] = ''.join(sequence)
+    if name != '':
+        fasta_dict[name] = ''.join(sequence)
 
     return fasta_dict
 
 def fastq_func(fastqfile: str) -> dict: 
     
-    with open(fastqfile, 'r') as f:
-        read = []
-        name = ''
-        fastq_dict = {}
-        for line in f:
-            if line.startswith('@'):
-                if name != '':
-                    fastq_dict[name] = ''.join(read)
-                    read = []
-                name = line[1:].strip()
-            else:
-                read.append(line.strip())
+    read = []
+    name = ''
+    fastq_dict = {}
+    for line in fastqfile:
+        if line.startswith('@'):
+            if name != '':
+                fastq_dict[name] = ''.join(read)
+                read = []
+            name = line[1:].strip()
+        else:
+            read.append(line.strip())
 
-        if name != '':
-            fastq_dict[name] = ''.join(read)
+    if name != '':
+        fastq_dict[name] = ''.join(read)
 
     return fastq_dict
     
@@ -194,16 +193,22 @@ def D_table(Rsa: list, C: dict, RO: dict, fastq: str, edit_limit) -> list:
 def approx_fm_search(genomename: str, sa: list, C: dict, O: dict, fastq: str, readname: str, D: list, edit_limit: int) -> str:
 
     res = []
-    sigma = list(C.keys())
     
     L, R = 0, len(sa)
-    p = ''.join(reversed(fastq))
     j = 0
+    p = ''.join(reversed(fastq))
+    # if p[j] in C:
+    #     L = C[p[j]] + O[p[j]][L]
+    #     R = C[p[j]] + O[p[j]][R]
+    # else:
+    #     L = R
+        
     res = {} # {edits: (L, R, cigar)}
     queue = [(0, L, R, "", j)] # (edits, L, R, cigar, j)
     while queue:
-        edits, L, R, cigar, j = queue.pop()
 
+        edits, L, R, cigar, j = queue.pop()
+        
         if j == len(p) and edits <= edit_limit: # add result
             if edits in res:
                 res[edits].append((L, R, cigar))
@@ -216,53 +221,88 @@ def approx_fm_search(genomename: str, sa: list, C: dict, O: dict, fastq: str, re
 
         if j < len(p) and d <= edit_limit: # O(m)
             # Update 29-11-22: add letters to cigar from the front since we move through p from the back
-            
-            # Mismatch
-            if (L == R or p[j] not in C) and edits < edit_limit: # Do we need this? no, can do deletion instead, just not for the first character
-                print('mismatch')
-                queue.append((edits+1, 0, len(sa), 'M'+cigar, j+1))
-            
-            elif L != R: # Match
-                print('match')
-                if cigar == 'M' or cigar == 'I':
-                    cigar += 'follow'
-                elif cigar == 'Mfollow':
-                    print('why dont I print match?')
+
+            if L != R: # Match
                 queue.append((edits, C[p[j]] + O[p[j]][L], C[p[j]] + O[p[j]][R], 'M'+cigar, j+1))
+
+            if edits < edit_limit: 
+                # Mismatch
+                for char in C.keys():
+                    if char != '$' and char != p[j]:
+                        queue.append((edits+1, C[char] + O[char][L], C[char] + O[char][R], 'M'+cigar, j+1))
             
-            # Insertion
-            if edits < edit_limit:
-                print('insertion')
+                # Insertion
                 queue.append((edits+1, L, R, 'I'+cigar, j+1))
 
-            # Deletion
-            if j != 0 and edits < edit_limit:
-                print('deletion')
-                queue.append((edits+1, C[p[j]] + O[p[j]][L], C[p[j]] + O[p[j]][R], 'D'+cigar, j))
+                # Deletion
+                if j != 0 and p[j] in C:
+                    queue.append((edits+1, C[p[j]] + O[p[j]][L], C[p[j]] + O[p[j]][R], 'D'+cigar, j))
             
-    
     final = []
-    print(res)
     for edits, match in res.items():
         
         for L,R,cigar in match:
-            print(sa)
-            match = sa[L]+1
-            final.append('\t'.join([readname, genomename, str(match), f'{cigar}', fastq]))
+            for i in range(L,R):
+                match = sa[i]+1
+                if edit_limit==0:
+                    text=str(len(p))+'M'
+                else:
+                    text=f'{edits_to_cigar(cigar)}'
+                final.append('\t'.join([readname, genomename, str(match), text, fastq]))
     
     return '\n'.join(final)
+
+def split_blocks(x: str) -> list[str]:
+    """Split a string into blocks of equal character.
+
+    Args:
+        x (str): A string, but we sorta think it would be edits.
+
+    Returns:
+        list[str]: A list of blocks.
+
+    >>> split_blocks('MDMMMMMMIMMMM')
+    ['M', 'D', 'MMMMMM', 'I', 'MMMM']
+
+    """
+    # In any other language, this would likely not be the most efficient
+    # approach to this, but since re.findall calls into C, it is faster
+    # than implementing a more reasonable algorithm in pure Python.
+    return [m[0] for m in re.findall(r"((.)\2*)", x)]
+
+def edits_to_cigar(edits: str) -> str:
+    """Encode a sequence of edits as a CIGAR.
+
+    Args:
+        edits (str): A sequence of edit operations
+
+    Returns:
+        str: The CIGAR encoding of edits.
+
+    >>> edits_to_cigar('MDMMMMMMIMMMM')
+    '1M1D6M1I4M'
+
+    """
+    result = split_blocks(edits)
+    cigar = ''
+    for C in result :
+        cigar += str(len(C)) + C[0]
+    return cigar
 
 
 def main():
 
     genome = 'src/fasta.fa'
-    fa = fasta_func(genome)
-    print(fa)
+    with open (genome, 'r') as f:
+        lines = f.readlines()
+        fa = fasta_func(lines)
+
     read = 'src/fastq.fq'
-    fq = fastq_func(read)
+    with open (read, 'r') as f:
+        lines = f.readlines()
+        fq = fastq_func(lines)
     
     editlim = 1
-
 
     filename = process_file(fa, genome)
 

@@ -105,13 +105,16 @@ Once you have implemented the `readmap` program (and tested it to the best of yo
 ## Algorithm
 
 *Which algorithm did you use for read mapping?*
+For read mapping we implemented the bwt using fm-search and the D-table.
 
 ## Insights you may have had while implementing the algorithm
 
+
 ## Problems encountered if any
+When computing the approximate matches we don't reset L, R when a mismatch occurs (as we do when calculating the D table). Instead we need add an element to our queue for every letter of our alphabet (apart from the matching one and the sentinal) and search further down from there.
 
 ## Validation
-
+We compared the output of our algorithm against the output from the [gsa] Python package in the tests.yaml file.
 *How did you validate that the algorithm works?*
 
 ## Running time
