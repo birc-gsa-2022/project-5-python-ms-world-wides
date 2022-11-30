@@ -196,7 +196,6 @@ def edits_to_cigar(edits: str) -> str:
 
 def approx_fm_search(genomename: str, sa: list, C: dict, O: dict, fastq: str, readname: str, D: list, edit_limit: int) -> str:
 
-    res = []
     
     L, R = 0, len(sa)
     j = 0
@@ -238,6 +237,7 @@ def approx_fm_search(genomename: str, sa: list, C: dict, O: dict, fastq: str, re
                     queue.append((edits+1, C[p[j]] + O[p[j]][L], C[p[j]] + O[p[j]][R], 'D'+cigar, j))
             
     final = []
+    
     for edits, match in res.items():
         
         for L,R,cigar in match:
@@ -248,7 +248,8 @@ def approx_fm_search(genomename: str, sa: list, C: dict, O: dict, fastq: str, re
                 else:
                     text=f'{edits_to_cigar(cigar)}'
                 final.append('\t'.join([readname, genomename, str(match), text, fastq]))
-    
+    if final == []:
+        return ''
     return '\n'.join(final)
 
 def approximate_matching(prepro_file: str, fastq_dict: dict, edit_limit: int):
@@ -282,7 +283,8 @@ def approximate_matching(prepro_file: str, fastq_dict: dict, edit_limit: int):
             D = D_table(Rsa_list[i], C_list[i], RO_list[i], read, edit_limit)
             if D != []:
                 simplesam = approx_fm_search(fastanames[i], sa_list[i], C_list[i], O_list[i], read, readname, D, edit_limit)
-                yield simplesam
+                if simplesam != '':
+                    yield simplesam
 
 # def main():
 
