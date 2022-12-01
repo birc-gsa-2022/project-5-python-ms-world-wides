@@ -233,9 +233,11 @@ def approx_fm_search(genomename: str, sa: list, C: dict, O: dict, fastq: str, re
                 queue.append((edits+1, L, R, 'I'+cigar, j+1))
 
                 # Deletion
-                if j != 0 and p[j] in C:
-                    queue.append((edits+1, C[p[j]] + O[p[j]][L], C[p[j]] + O[p[j]][R], 'D'+cigar, j))
-            
+                if j != 0:
+                    for char in C.keys():
+                        if char != '$':
+                            queue.append((edits+1, C[char] + O[char][L], C[char] + O[char][R], 'D'+cigar, j))
+                            
     final = []
     
     for edits, match in res.items():
@@ -286,64 +288,6 @@ def approximate_matching(prepro_file: str, fastq_dict: dict, edit_limit: int):
                 if simplesam != '':
                     yield simplesam
 
-# def main():
-
-#     genome = 'src/fasta.fa'
-#     with open (genome, 'r') as f:
-#         lines = f.readlines()
-#         fa = fasta_func(lines)
-
-#     read = 'src/fastq.fq'
-#     with open (read, 'r') as f:
-#         lines = f.readlines()
-#         fq = fastq_func(lines)
-    
-#     editlim = 1
-
-#     filename = process_file(fa, genome)
-
-#     sams = approximate_matching(filename, fq, editlim)
-#     for s in sams:
-#         print(s)
-
-    
-
-#     """ argparser = argparse.ArgumentParser(
-#         description="FM-index exact pattern matching",
-#         usage="\n\tfm -p genome\n\tfm genome reads"
-#     )
-#     argparser.add_argument(
-#         "-p", action="store_true",
-#         help="preprocess the genome."
-#     )
-#     argparser.add_argument(
-#         "genome",
-#         help="Simple-FASTA file containing the genome.",
-#         type=argparse.FileType('r')
-#     )
-#     argparser.add_argument(
-#         "reads", nargs="?",
-#         help="Simple-FASTQ file containing the reads.",
-#         type=argparse.FileType('r')
-#     )
-#     args = argparser.parse_args()
-
-#     if args.p:
-#         print(f"Preprocess {args.genome}")
-#         fasta_dict = fasta_func(args.genome)
-
-#         process_file(fasta_dict, args.genome.name)
-#     else:
-#         # here we need the optional argument reads
-#         if args.reads is None:
-#             argparser.print_help()
-#             sys.exit(1)
-#         prepro_file = args.genome.name.split('.')[0]+'_prepro.txt'
-        
-#         fastq_dict = fastq_func(args.reads)
-#         print(fm_search(prepro_file, fastq_dict))
-#          """
-        
 
 
 def main():
