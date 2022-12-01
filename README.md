@@ -112,9 +112,12 @@ For read mapping we implemented the bwt using fm-search and the D-table.
 
 ## Problems encountered if any
 When computing the approximate matches we don't reset L, R when a mismatch occurs (as we do when calculating the D table). Instead we need add an element to our queue for every letter of our alphabet (apart from the matching one and the sentinal) and search further down from there.
+We had to run the tests on a Linux terminal.
 
 ## Validation
 We compared the output of our algorithm against the output from the [gsa] Python package in the tests.yaml file.
+The tests worked.
+![](fig/testing.png)
 *How did you validate that the algorithm works?*
 
 ## Running time
@@ -130,12 +133,3 @@ The first plot shows that pattern length only has a constant effect on the runni
 
 The second 
 *List experiments and results that illustrates the running time. Add figures by embedding them here, as you learned how to do in project 1.*
-
-
-
-
-The preprocessing algorithm includes creating the suffix array for which we use Python's sorted() 
-The fm-search runs in O(m), because we loop trough the pattern string of size m -> O(m) and for every letter we get "Rank" and "Select" by indexing into O and C -> O(1).
-
-The following figures show that all of the algorithms look like they would run in linear time for x = a^n and a random sequence. This would be is suprising for the cration of the SA, but also it is very diffiult to distinguisch between O(n) and O(n log(n)) by looking at the graphs. The preprocessing in total (orange) takes longer because it also includes the creation of bwt and the tables. 
-Finally the fm search uses the preprocessed tables and array (that it needs to load) and then represents the search time through the pattern. 
