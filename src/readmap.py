@@ -157,7 +157,7 @@ def D_table(Rsa: list, C: dict, RO: dict, fastq: str, edit_limit) -> list:
             D = []
     return D
 
-def split_blocks(x: str) -> list[str]:
+def split_blocks(x: str):
     """Split a string into blocks of equal character.
 
     Args:
