@@ -112,10 +112,12 @@ For read mapping we implemented the bwt using fm-search and the D-table.
 
 ## Problems encountered if any
 When computing the approximate matches we don't reset L, R when a mismatch occurs (as we do when calculating the D table). Instead we need add an element to our queue for every letter of our alphabet (apart from the matching one and the sentinal) and search further down from there.
+We had to run the tests on a Linux terminal.
 
 ## Validation
 We compared the output of our algorithm against the output from the [gsa] Python package in the tests.yaml file.
-*How did you validate that the algorithm works?*
+The tests worked.
+![](fig/testing.png)
 
 ## Running time
 For implementing the approximate search we used the BWT approach with the D table. 
@@ -128,6 +130,7 @@ Having the D-table we now run approximate_fm_search(). Here we work with a queue
 
 The first two plots show that pattern length only has a constant effect on the running time:
 
+<<<<<<< HEAD
 ## Random:
 ![](figs/random_multiple_patterns.png)
 
@@ -148,3 +151,7 @@ Finally, the fm search uses the preprocessed tables and array (that it needs to 
 
 ## Single-symbol string:
 ![](figs/single.png)
+=======
+The second 
+*List experiments and results that illustrates the running time. Add figures by embedding them here, as you learned how to do in project 1.*
+>>>>>>> 1c8d88870d5f4b1a97607656a296cebdc90f5e29
