@@ -130,13 +130,12 @@ Having the D-table we now run approximate_fm_search(). Here we work with a queue
 
 The first two plots show that pattern length only has a constant effect on the running time:
 
-<<<<<<< HEAD
 ## Random:
-![](figs/random_multiple_patterns.png)
+![](time/random_multiple_patterns.png)
 
 
 ## Single-symbol string:
-![](figs/single_multiple_patterns.png)
+![](time/single_multiple_patterns.png)
 
 
 The preprocessing algorithm includes creating the suffix array for which we use Python's sorted() 
@@ -146,12 +145,8 @@ The following figures show that all of the algorithms look like they would run i
 Finally, the fm search uses the preprocessed tables and array (that it needs to load) and then represents the search time through the pattern. 
 
 ## Random:
-![](figs/random.png)
+![](time/random.png)
 
 
 ## Single-symbol string:
-![](figs/single.png)
-=======
-The second 
-*List experiments and results that illustrates the running time. Add figures by embedding them here, as you learned how to do in project 1.*
->>>>>>> 1c8d88870d5f4b1a97607656a296cebdc90f5e29
+![](time/single.png)
