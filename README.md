@@ -118,7 +118,6 @@ We had to run the tests on a Linux terminal.
 We compared the output of our algorithm against the output from the [gsa] Python package in the tests.yaml file.
 The tests worked.
 ![](fig/testing.png)
-*How did you validate that the algorithm works?*
 
 ## Running time
 For implementing the approximate search we used the BWT approach with the D table. 
