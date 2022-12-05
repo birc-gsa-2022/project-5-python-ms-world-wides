@@ -105,16 +105,48 @@ Once you have implemented the `readmap` program (and tested it to the best of yo
 ## Algorithm
 
 *Which algorithm did you use for read mapping?*
+For read mapping we implemented the bwt using fm-search and the D-table.
 
 ## Insights you may have had while implementing the algorithm
 
+
 ## Problems encountered if any
+When computing the approximate matches we don't reset L, R when a mismatch occurs (as we do when calculating the D table). Instead we need add an element to our queue for every letter of our alphabet (apart from the matching one and the sentinal) and search further down from there.
+We had to run the tests on a Linux terminal.
 
 ## Validation
-
-*How did you validate that the algorithm works?*
+We compared the output of our algorithm against the output from the [gsa] Python package in the tests.yaml file.
+The tests worked.
+![](fig/testing.png)
 
 ## Running time
+For implementing the approximate search we used the BWT approach with the D table. 
+We used our implementation from project 4 to preprocess the sequence. Therefore, we calulate the SA/reversed SA in O(n log n), the O and reversed O table and the C table. To calculate the C and O table we first had to calculate the BWT in O(n) for the string/reversed string. Then we construct the C table in O(n), we only need to construct it once because it is the same for the string and the reversed string.
+Having bwt/reversed bwt and C we finally construct the O table/reversed O table in O(n*$\sigma$).
 
-*List experiments and results that illustrates the running time. Add figures by embedding them here, as you learned how to do in project 1.*
+After processing the string we now want to start the approximate matching.
+For the approximate-fm-search we first construct the D-table of the pattern, which uses the reversed O and C table and runs trough the pattern ones O(m). The table gives a minimum number of edits you need to match the rest of the pattern and therefore works like a filter. 
+Having the D-table we now run approximate_fm_search(). Here we work with a queue and "walk trough our pattern". In every step we add (if possible) a match, $\sigma$-1 mismatches, $\sigma$ delitions and a insertion to th
 
+The first two plots show that pattern length only has a constant effect on the running time:
+
+## Random:
+![](time/random_multiple_patterns.png)
+
+
+## Single-symbol string:
+![](time/single_multiple_patterns.png)
+
+
+The preprocessing algorithm includes creating the suffix array for which we use Python's sorted() 
+The fm-search runs in O(m), because we loop trough the pattern string of size m -> O(m) and for every letter we get "Rank" and "Select" by indexing into O and C -> O(1).
+
+The following figures show that all of the algorithms look like they would run in linear time for x = a^n and a random sequence. This would be is suprising for the cration of the SA, but also it is very diffiult to distinguisch between O(n) and O(n log(n)) by looking at the graphs. The preprocessing in total (orange) takes longer because it also includes the creation of bwt and the tables. 
+Finally, the fm search uses the preprocessed tables and array (that it needs to load) and then represents the search time through the pattern. 
+
+## Random:
+![](time/random.png)
+
+
+## Single-symbol string:
+![](time/single.png)
